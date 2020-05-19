@@ -1,4 +1,4 @@
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 
 #include "defines.h"
 
@@ -13,5 +13,6 @@ byte PIN_LATCH_COM = 255;
 byte PIN_SENSOR1 = 255;
 byte PIN_SENSOR2 = 255;
 byte PIN_IOEXP_INT = 255;
+
 
 #endif

@@ -130,7 +130,7 @@ static void getweather_callback_with_peel_header(char* buffer) {
 }
 
 void GetWeather() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!m_server) {
 		if (os.state!=OS_STATE_CONNECTED || WiFi.status()!=WL_CONNECTED) return;
 	}
@@ -182,4 +182,3 @@ void GetWeather() {
 		// if wt_errCode > 0, the call is successful but weather script may return error
 	}
 }
-
