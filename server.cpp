@@ -29,12 +29,15 @@
 // External variables defined in main ion file
 #if defined(ARDUINO)
 	
-	#if defined(ESP8266)
+	#if defined(ESP8266) || defined(ESP32)
 
 		#include <FS.h>
 		#include "espconnect.h"
-	 
+	 #if defined(ESP8266)
 		extern ESP8266WebServer *wifi_server;
+   #elif defined(ESP32)
+    extern WebServer *wifi_server;
+   #endif
 		extern EthernetServer *m_server;
 		extern EthernetClient *m_client;
 		
@@ -135,7 +138,7 @@ static const char htmlReturnHome[] PROGMEM =
 ;
 
 void print_html_standard_header() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if (m_client) {
 		bfill.emit_p(PSTR("$F$F$F$F\r\n"), html200OK, htmlContentHTML, htmlNoCache, htmlAccessControl);
 		return;
@@ -155,7 +158,7 @@ void print_html_standard_header() {
 }
 
 void print_json_header(bool bracket=true) {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if (m_client) {
 		bfill.emit_p(PSTR("$F$F$F$F\r\n"), html200OK, htmlContentJSON, htmlAccessControl, htmlNoCache);
 		if(bracket) bfill.emit_p(PSTR("{"));
@@ -181,7 +184,7 @@ void print_json_header(bool bracket=true) {
 
 byte findKeyVal (const char *str,char *strbuf, uint16_t maxlen,const char *key,bool key_in_pgm=false,uint8_t *keyfound=NULL) {
 	uint8_t found=0;
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	// for ESP8266: there are two cases:
 	// case 1: if str is NULL, we assume the key-val to search is already parsed in wifi_server
 	if(str==NULL) {
@@ -269,7 +272,7 @@ void rewind_ether_buffer() {
 }
 
 void send_packet(bool final=false) {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if (m_client) {
 		m_client->write((const uint8_t *)ether_buffer, strlen(ether_buffer));
 		if (final)
@@ -303,7 +306,7 @@ void send_packet(bool final=false) {
 #endif	
 }
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 String two_digits(uint8_t x) {
 	return String(x/10) + (x%10);
 }
@@ -413,17 +416,17 @@ String get_ap_ssid() {
 static String scanned_ssids;
 
 void on_ap_home() {
-	if(os.get_wifi_mode()!=WIFI_MODE_AP) return;
+	if(os.get_wifi_mode()!=WIFI_M_AP) return;
 	server_send_html(FPSTR(ap_home_html));
 }
 
 void on_ap_scan() {
-	if(os.get_wifi_mode()!=WIFI_MODE_AP) return;
+	if(os.get_wifi_mode()!=WIFI_M_AP) return;
 	server_send_html(scanned_ssids);
 }
 
 void on_ap_change_config() {
-	if(os.get_wifi_mode()!=WIFI_MODE_AP) return;
+	if(os.get_wifi_mode()!=WIFI_M_AP) return;
 	if(wifi_server->hasArg("ssid")&&wifi_server->arg("ssid").length()!=0) {
 		os.wifi_ssid = wifi_server->arg("ssid");
 		os.wifi_pass = wifi_server->arg("pass"); 
@@ -439,7 +442,7 @@ void on_ap_change_config() {
 }
 
 void on_ap_try_connect() {
-	if(os.get_wifi_mode()!=WIFI_MODE_AP) return;
+	if(os.get_wifi_mode()!=WIFI_M_AP) return;
 	String html = "{";
 	ulong ip = (WiFi.status()==WL_CONNECTED)?(uint32_t)WiFi.localIP():0;
 	append_key_value(html, "ip", ip);
@@ -456,7 +459,7 @@ void on_ap_try_connect() {
 
 
 /** Check and verify password */
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 boolean process_password(boolean fwv_on_fail=false, char *p = NULL)
 #else
 boolean check_password(char *p)
@@ -474,7 +477,7 @@ boolean check_password(char *p)
 		if (os.password_verify(tmp_buffer))
 			return true;
 	}
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(m_client) { return false; }
 	/* some pages will output fwv if password check has failed */
 	if(fwv_on_fail) {
@@ -526,7 +529,7 @@ void server_json_stations_main() {
 
 /** Output stations data */
 void server_json_stations() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!process_password()) return;
 	rewind_ether_buffer();
 #endif
@@ -538,7 +541,7 @@ void server_json_stations() {
 /** Output station special attribute */
 void server_json_station_special() {
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!process_password()) return;
 	rewind_ether_buffer();
 #endif
@@ -586,7 +589,7 @@ void server_change_stations_attrib(char *p, char header, byte *attrib)
  * p?: station special flag bit field
  */
 void server_change_stations() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char* p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -638,7 +641,7 @@ void server_change_stations() {
 				}
 				if (!found || activeState > 1) handle_return(HTML_DATA_OUTOFBOUND);
 			} else if (tmp_buffer[0] == STN_TYPE_HTTP) {
-				#if defined(ESP8266)	// ESP8266 performs automatic decoding so no need to do it again
+				#if defined(ESP8266) || defined(ESP32)	// ESP8266 performs automatic decoding so no need to do it again
 					if(m_server) urlDecode(tmp_buffer + 1);
 				#else
 					urlDecode(tmp_buffer + 1);
@@ -689,7 +692,7 @@ void manual_start_program(byte, byte);
  * uwt: use weather (i.e. watering percentage)
  */
 void server_manual_program() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char* p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -727,7 +730,7 @@ void server_manual_program() {
  * t:  station water time
  */
 void server_change_runonce() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char* p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -792,7 +795,7 @@ void server_change_runonce() {
  * pid:program index (-1 will delete all programs)
  */
 void server_delete_program() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -823,7 +826,7 @@ void server_delete_program() {
  * pid: program index (must be 1 or larger, because we can't move up program 0)
 */
 void server_moveup_program() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -857,7 +860,7 @@ void server_moveup_program() {
 */
 const char _str_program[] PROGMEM = "Program ";
 void server_change_program() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -902,7 +905,7 @@ void server_change_program() {
 	// do a full string decoding
 	if(p) urlDecode(p);
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!findKeyVal(p,tmp_buffer,TMP_BUFFER_SIZE, "v",false)) handle_return(HTML_DATA_MISSING);
 	char *pv = tmp_buffer+1;	
 #else
@@ -971,7 +974,7 @@ void server_json_options_main() {
 				continue;
 		#endif
 		
-		#if !defined(ESP8266)
+		#if !defined(ESP8266) && !defined(ESP32)
 		// so far only OS3.x has sensor2
 		if (oid==IOPT_SENSOR2_TYPE || oid==IOPT_SENSOR2_OPTION || oid==IOPT_SENSOR2_ON_DELAY || oid==IOPT_SENSOR2_OFF_DELAY)
 			continue;
@@ -993,7 +996,7 @@ void server_json_options_main() {
 		if (oid==IOPT_BOOST_TIME) continue;
 		#endif
 		
-		#if defined(ESP8266)
+		#if defined(ESP8266) || defined(ESP32)
 		if (oid==IOPT_HW_VERSION) {
 			v+=os.hw_rev;	// for OS3.x, add hardware revision number
 		}
@@ -1002,7 +1005,7 @@ void server_json_options_main() {
 		if (oid==IOPT_SEQUENTIAL_RETIRED || oid==IOPT_URS_RETIRED || oid==IOPT_RSO_RETIRED) continue;
 	 
 #if defined(ARDUINO)
-		#if defined(ESP8266)
+		#if defined(ESP8266) || defined(ESP32)
 		// for SSD1306, no LCD parameters
 		if(oid==IOPT_LCD_CONTRAST || oid==IOPT_LCD_BACKLIGHT || oid==IOPT_LCD_DIMMING) continue;
 		#else
@@ -1028,7 +1031,7 @@ void server_json_options_main() {
 
 /** Output Options */
 void server_json_options() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!process_password(true)) return;
 	rewind_ether_buffer();
 #endif
@@ -1081,7 +1084,7 @@ void server_json_programs_main() {
 
 /** Output program data */
 void server_json_programs() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!process_password()) return;
 	rewind_ether_buffer();
 #endif
@@ -1093,7 +1096,7 @@ void server_json_programs() {
 
 /** Output script url form */
 void server_view_scripturl() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	// no authenticaion needed
 	rewind_ether_buffer();
 #endif
@@ -1128,7 +1131,7 @@ void server_json_controller_main() {
 							pd.lastrun.duration,
 							pd.lastrun.endtime);
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	bfill.emit_p(PSTR("\"RSSI\":$D,"), (int16_t)WiFi.RSSI());
 #endif
 
@@ -1183,7 +1186,7 @@ void server_json_controller_main() {
 
 /** Output controller variables in json */
 void server_json_controller() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!process_password()) return;
 	rewind_ether_buffer();
 #endif
@@ -1195,7 +1198,7 @@ void server_json_controller() {
 /** Output homepage */
 void server_home()
 {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	rewind_ether_buffer();
 #endif
 
@@ -1226,7 +1229,7 @@ void server_home()
  */
 void server_change_values()
 {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	extern unsigned long reboot_timer;
 	if(!process_password()) return;
@@ -1246,7 +1249,7 @@ void server_change_values()
 #endif
 
 	if (findKeyVal(p, tmp_buffer, TMP_BUFFER_SIZE, PSTR("rbt"), true) && atoi(tmp_buffer) > 0) {
-		#if defined(ESP8266)
+		#if defined(ESP8266) || defined(ESP32)
 			reboot_timer = millis() + 1000;
 			handle_return(HTML_SUCCESS);
 		#else
@@ -1282,7 +1285,7 @@ void server_change_values()
 		}
 	}
 	
-	#if defined(ESP8266)
+	#if defined(ESP8266) || defined(ESP32)
 	if (findKeyVal(p, tmp_buffer, TMP_BUFFER_SIZE, PSTR("ap"), true)) {
 		os.reset_to_ap();
 	}  
@@ -1310,7 +1313,7 @@ void string_remove_space(char *src) {
  * jsp: Javascript path
  */
 void server_change_scripturl() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -1349,7 +1352,7 @@ void server_change_scripturl() {
  */
 void server_change_options()
 {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -1509,7 +1512,7 @@ void server_change_password() {
 	return;
 #endif
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char* p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -1544,7 +1547,7 @@ void server_json_status_main() {
 /** Output station status */
 void server_json_status()
 {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!process_password()) return;
 	rewind_ether_buffer();
 #endif
@@ -1563,7 +1566,7 @@ void server_json_status()
  * t:  timer (required if en=1)
  */
 void server_change_manual() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -1629,7 +1632,7 @@ void server_change_manual() {
 }
 
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 int file_fgets(File file, char* buf, int maxsize) {
 	int index=0;
 	while(index<maxsize) {
@@ -1658,7 +1661,7 @@ int file_fgets(File file, char* buf, int maxsize) {
  */
 void server_json_log() {
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -1696,7 +1699,7 @@ void server_json_log() {
 	if (findKeyVal(p, type, 4, PSTR("type"), true))
 		type_specified = true;
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	// as the log data can be large, we will use ESP8266's sendContent function to
 	// send multiple packets of data, instead of the standard way of using send().
 	rewind_ether_buffer();
@@ -1714,7 +1717,7 @@ void server_json_log() {
 		itoa(i, tmp_buffer, 10);
 		make_logfile_name(tmp_buffer);
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 		File file = SPIFFS.open(tmp_buffer, "r");
 		if(!file) continue;
 #elif defined(ARDUINO)
@@ -1728,7 +1731,7 @@ void server_json_log() {
 
 		int res;
 		while(true) {
-		#if defined(ESP8266)
+		#if defined(ESP8266) || defined(ESP32)
 			// do not use file.readBytes or readBytesUntil because it's very slow
 			int res = file_fgets(file, tmp_buffer, TMP_BUFFER_SIZE);
 			if (res <= 0) {
@@ -1795,7 +1798,7 @@ void server_json_log() {
  * if day=all: delete all log files)
  */
 void server_delete_log() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	char *p = NULL;
 	if(!process_password()) return;
 	if (m_client)
@@ -1814,7 +1817,7 @@ void server_delete_log() {
 
 /** Output all JSON data, including jc, jp, jo, js, jn */
 void server_json_all() {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if(!process_password(true)) return;
 	rewind_ether_buffer();
 #endif
@@ -1837,7 +1840,7 @@ void server_json_all() {
 	handle_return(HTML_OK);
 }
 
-#if defined(ARDUINO) && !defined(ESP8266)
+#if defined(ARDUINO) && (!defined(ESP8266) && !defined(ESP32))
 static int freeHeap () {
   extern int __heap_start, *__brkval; 
   int v; 
@@ -1850,11 +1853,15 @@ void server_json_debug() {
   rewind_ether_buffer();
   print_json_header();
   bfill.emit_p(PSTR("\"date\":\"$S\",\"time\":\"$S\",\"heap\":$D"), __DATE__, __TIME__,
-  #if defined(ESP8266)
+  #if defined(ESP8266) || defined(ESP32)
   (uint16_t)ESP.getFreeHeap());
+  #if defined(ESP8622)
   FSInfo fs_info;
 	SPIFFS.info(fs_info);
   bfill.emit_p(PSTR(",\"flash\":$D,\"used\":$D}"), fs_info.totalBytes, fs_info.usedBytes);
+  #elif defined(ESP32)
+  bfill.emit_p(PSTR(",\"flash\":$D,\"used\":$D}"), SPIFFS.totalBytes(), SPIFFS.usedBytes());
+  #endif 
   #else
   (uint16_t)freeHeap());
   bfill.emit_p(PSTR("}"));
@@ -1927,7 +1934,7 @@ URLHandler urls[] = {
 };
 
 // handle Ethernet request
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 void on_ap_update() {
 	String html = FPSTR(ap_update_html);
 	server_send_html(html);
@@ -1957,13 +1964,22 @@ void on_ap_upload_fin() { on_sta_upload_fin(); }
 void on_sta_upload() {
 	HTTPUpload& upload = wifi_server->upload();
 	if(upload.status == UPLOAD_FILE_START){
+		#if defined(ESP8266)
 		WiFiUDP::stopAll();
+    #elif defined(ESP32)
+//    WiFiUDP::stop(); 
+    #endif
 		DEBUG_PRINT(F("upload: "));
 		DEBUG_PRINTLN(upload.filename);
+#if defined(ESP8266)
 		uint32_t maxSketchSpace = (ESP.getFreeSketchSpace()-0x1000)&0xFFFFF000;
 		if(!Update.begin(maxSketchSpace)) {
-			DEBUG_PRINT(F("begin failed "));
-			DEBUG_PRINTLN(maxSketchSpace);
+      DEBUG_PRINT(F("begin failed "));
+      DEBUG_PRINTLN(maxSketchSpace);
+#else
+    if(!Update.begin()) {
+      DEBUG_PRINTLN(F("begin failed"));
+#endif
 		}
 		
 	} else if(upload.status == UPLOAD_FILE_WRITE) {
@@ -1988,10 +2004,15 @@ void on_ap_upload() {
 	if(upload.status == UPLOAD_FILE_START){
 		DEBUG_PRINT(F("upload: "));
 		DEBUG_PRINTLN(upload.filename);
+#if defined(ESP8266)
 		uint32_t maxSketchSpace = (ESP.getFreeSketchSpace()-0x1000)&0xFFFFF000;
 		if(!Update.begin(maxSketchSpace)) {
-			DEBUG_PRINTLN(F("begin failed"));
-			DEBUG_PRINTLN(maxSketchSpace);			
+      DEBUG_PRINTLN(F("begin failed"));
+      DEBUG_PRINTLN(maxSketchSpace);      
+#else
+    if(!Update.begin()) {
+      DEBUG_PRINTLN(F("begin failed"));
+#endif    
 		}
 	} else if(upload.status == UPLOAD_FILE_WRITE) {
 		DEBUG_PRINT(".");
@@ -2092,7 +2113,7 @@ void handle_web_request(char *p) {
 					ret = return_code;
 				} else if ((com[0]=='j' && com[1]=='o') ||
 									 (com[0]=='j' && com[1]=='a'))	{ // for /jo and /ja we output fwv if password fails
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 					if(process_password(false, dat)==false) {
 #else
 					if(check_password(dat)==false) {
@@ -2112,7 +2133,7 @@ void handle_web_request(char *p) {
 					ret = return_code;
 				} else {
 					// first check password
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 					if(process_password(false, dat)==false) {
 #else
 					if(check_password(dat)==false) {
@@ -2127,7 +2148,7 @@ void handle_web_request(char *p) {
 				if (ret == -1) {
 					if (m_client)
 						m_client->stop();
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 					else
 						 wifi_server->client().stop();
 #endif
@@ -2159,7 +2180,7 @@ void handle_web_request(char *p) {
 
 }
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 #include "NTPClient.h"
 static EthernetUDP udp;
 static NTPClient *ntp = 0;
@@ -2171,7 +2192,7 @@ static char _ntpip[16];
 /** NTP sync request */
 ulong getNtpTime()
 {
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 	if (m_server) {
 		if (!ntp) {
 			String ntpip = "";
@@ -2302,5 +2323,3 @@ ulong getNtpTime()
 	return 0;
 }
 #endif
-
-

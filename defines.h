@@ -24,7 +24,8 @@
 #ifndef _DEFINES_H
 #define _DEFINES_H
 
-//#define ENABLE_DEBUG  // enable serial debug
+#define ENABLE_DEBUG  // enable serial debug
+//#define DEMO
 
 typedef unsigned char byte;
 typedef unsigned long ulong;
@@ -109,8 +110,9 @@ typedef unsigned long ulong;
 
 
 /** WiFi defines */
-#define WIFI_MODE_AP       0xA9
-#define WIFI_MODE_STA      0x2A
+#define WIFI_M_AP       0xA9
+#define WIFI_M_STA      0x2A
+
 
 #define OS_STATE_INITIAL        0
 #define OS_STATE_CONNECTING     1
@@ -287,7 +289,7 @@ enum {
 	#define digitalReadExt    digitalRead
 	#define digitalWriteExt   digitalWrite  
 
-#elif defined(ESP8266) // for ESP8266
+#elif defined(ESP8266)  // for ESP8266
 
 	#define OS_HW_VERSION    (OS_HW_VERSION_BASE+30)
 	#define IOEXP_PIN        0x80 // base for pins on main IO expander
@@ -295,14 +297,14 @@ enum {
 	#define ACDR_I2CADDR     0x21 // ac driver I2C address
 	#define DCDR_I2CADDR     0x22 // dc driver I2C address
 	#define LADR_I2CADDR     0x23 // latch driver I2C address
-	#define EXP_I2CADDR_BASE 0x24 // base of expander I2C address
+  #define EXP_I2CADDR_BASE 0x24 // base of expander I2C address
 	#define LCD_I2CADDR      0x3C // 128x64 OLED display I2C address
 
-	#define PIN_CURR_SENSE    A0
-	#define PIN_FREE_LIST     {} // no free GPIO pin at the moment
+  #define PIN_CURR_SENSE    A0
+  #define PIN_FREE_LIST     {} // no free GPIO pin at the moment
 	#define ETHER_BUFFER_SIZE   8192
 
-	#define PIN_ETHER_CS       16 // ENC28J60 CS (chip select pin) is 16 on OS 3.2.
+  #define PIN_ETHER_CS       16 // ENC28J60 CS (chip select pin) is 16 on OS 3.2.
 
 	/* To accommodate different OS30 versions, we use software defines pins */ 
 	extern byte PIN_BUTTON_1;
@@ -320,6 +322,7 @@ enum {
 	/* Original OS30 pin defines */
 	//#define V0_MAIN_INPUTMASK 0b00001010 // main input pin mask
 	// pins on main PCF8574 IO expander have pin numbers IOEXP_PIN+i
+
 	#define V0_PIN_BUTTON_1      IOEXP_PIN+1 // button 1
 	#define V0_PIN_BUTTON_2      0           // button 2
 	#define V0_PIN_BUTTON_3      IOEXP_PIN+3 // button 3
@@ -361,6 +364,10 @@ enum {
 	#define V2_PIN_LATCH_COM     IOEXP_PIN+15  
 	#define V2_PIN_SENSOR1       3  // sensor 1
 	#define V2_PIN_SENSOR2       10 // sensor 2
+
+#elif defined(ESP32)
+
+  #include "esp32.h"
 
 #elif defined(OSPI) // for OSPi
 
@@ -419,6 +426,7 @@ enum {
 		#define DEBUG_BEGIN(x)   {Serial.begin(x);}
 		#define DEBUG_PRINT(x)   {Serial.print(x);}
 		#define DEBUG_PRINTLN(x) {Serial.println(x);}
+    #define DEBUG_PRINTX(x)  {Serial.print(F("0x")); Serial.print(x, HEX); }
 	#else
 		#include <stdio.h>
 		#define DEBUG_BEGIN(x)          {}  /** Serial debug functions */
@@ -487,6 +495,5 @@ enum {
 
 #define DISPLAY_MSG_MS      2000  // message display time (milliseconds)
 
+
 #endif  // _DEFINES_H
-
-

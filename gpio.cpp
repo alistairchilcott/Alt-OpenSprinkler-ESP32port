@@ -25,7 +25,7 @@
 
 #if defined(ARDUINO)
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 
 #include <Wire.h>
 #include "defines.h"
@@ -41,7 +41,7 @@ byte IOEXP::detectType(uint8_t address) {
 	if(Wire.requestFrom(address, (uint8_t)2) != 2) return IOEXP_TYPE_UNKNOWN;
 	uint8_t low = Wire.read();
 	uint8_t high = Wire.read();
-	if(low==0x00 && high==0x00) {
+  if(low==0x00 && high==0x00) {
 		return IOEXP_TYPE_9555; // PCA9555 has polarity register which inits to 0
 	}
 	return IOEXP_TYPE_8575;  
@@ -62,7 +62,7 @@ uint16_t PCA9555::i2c_read(uint8_t reg) {
 	Wire.beginTransmission(address);
 	Wire.write(reg);
 	Wire.endTransmission();
-	if(Wire.requestFrom(address, (uint8_t)2) != 2) {DEBUG_PRINTLN("GPIO error"); return 0xFFFF;}
+	if(Wire.requestFrom(address, (uint8_t)2) != 2) {DEBUG_PRINTLN("PCA9555 GPIO error"); return 0xFFFF;}
 	uint16_t data0 = Wire.read();
 	uint16_t data1 = Wire.read();
 	return data0+(data1<<8);
@@ -80,7 +80,7 @@ void PCA9555::i2c_write(uint8_t reg, uint16_t v){
 uint16_t PCF8575::i2c_read(uint8_t reg) {
 	if(address==255)	return 0xFFFF;
 	Wire.beginTransmission(address);
-	if(Wire.requestFrom(address, (uint8_t)2) != 2) return 0xFFFF;
+	if(Wire.requestFrom(address, (uint8_t)2) != 2) {DEBUG_PRINTLN("PCF8575 GPIO error"); return 0xFFFF;}
 	uint16_t data0 = Wire.read();
 	uint16_t data1 = Wire.read();
 	Wire.endTransmission();
@@ -99,8 +99,12 @@ void PCF8575::i2c_write(uint8_t reg, uint16_t v) {
 uint16_t PCF8574::i2c_read(uint8_t reg) {
 	if(address==255)	return 0xFFFF;
 	Wire.beginTransmission(address);
-	if(Wire.requestFrom(address, (uint8_t)1) != 1) return 0xFFFF;
+	if(Wire.requestFrom(address, (uint8_t)1) != 1) {DEBUG_PRINTLN("PCF8574 GPIO error"); return 0xFFFF;}
 	uint16_t data = Wire.read();
+  DEBUG_PRINT("PCF8574 address read request: ");
+  DEBUG_PRINT(address);
+  DEBUG_PRINT(" Data: ");
+  DEBUG_PRINTLN(data); 
 	Wire.endTransmission();
 	return data; 
 }
@@ -111,6 +115,30 @@ void PCF8574::i2c_write(uint8_t reg, uint16_t v) {
 	Wire.write((uint8_t)(v&0xFF) | inputmask);
 	Wire.endTransmission();  
 }
+
+#if defined(ESP32)
+void BUILD_IN_GPIO::set_pins_output_mode (){
+  int i;
+  for (i=0; i<8; i++)
+    if ( on_board_gpin_list[i] != 255){
+      pinModeExt( on_board_gpin_list[i], OUTPUT);
+    }
+}
+
+
+void BUILD_IN_GPIO::i2c_write(uint16_t v){
+  v = (uint8_t)(v&0xFF) | inputmask;
+  int i;
+  for (i=0; i<8; i++)
+    if ( on_board_gpin_list[i] != 255){
+      digitalWriteExt( on_board_gpin_list[i], ((v)>>(i)) & 1);
+    }
+}
+
+
+
+#endif
+
 
 #include "OpenSprinkler.h"
 
@@ -128,7 +156,7 @@ void pinModeExt(byte pin, byte mode) {
 void digitalWriteExt(byte pin, byte value) {
 	if(pin==255) return;
 	if(pin>=IOEXP_PIN) {
-
+   
 		os.mainio->digitalWrite(pin-IOEXP_PIN, value);
 	/*
 		// a pin on IO expander

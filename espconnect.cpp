@@ -17,9 +17,10 @@
  * along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 
 #include "espconnect.h"
+#include "esp32.h"
 
 const char html_ap_redirect[] PROGMEM = "<h3>WiFi config saved. Now switching to station mode.</h3>";
 
@@ -66,7 +67,15 @@ void start_network_sta_with_ap(const char *ssid, const char *pass) {
 
 void start_network_sta(const char *ssid, const char *pass) {
 	if(!ssid || !pass) return;
+
 	WiFi.mode(WIFI_STA);
-	WiFi.begin(ssid, pass);
+
+#if defined(ESP32)
+  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
+  WiFi.setSleep(false);
+  WiFi.setHostname(MDNS_NAME);   
+#endif
+  WiFi.begin(ssid, pass);
 }
+
 #endif
