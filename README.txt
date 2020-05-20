@@ -21,6 +21,9 @@ Know limitation
 Compilation process:
 1. you need a Ardunio IDE and ESP32 espressif pack - follow this instrution https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
 2. you need to have  necessary libraries, including SSD1306, RCSwitch, and UIPEthernet. 
+    - https://github.com/ThingPulse/esp8266-oled-ssd1306
+    - https://github.com/sui77/rc-switch
+    - https://github.com/UIPEthernet/UIPEthernet 
 3. select "ESP32 dev module" 
 4. edit esp32.h to define your HW config
 5. hit upload under skech menu
