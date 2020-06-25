@@ -27,10 +27,10 @@ void setup() {
 /* Seting internal station pins to prevent unstable behavior on startup */
   int i;
   unsigned int pin_list[] = ON_BOARD_GPIN_LIST;
-  for( i=0; i<7; i++ ){
+  for( i=0; i<8; i++ ){
     if(pin_list[i] !=255){
-      pinMode(i, OUTPUT);
-      digitalWrite(i, ~STATION_LOGIC);
+      pinMode(pin_list[i], OUTPUT);
+      digitalWrite(pin_list[i], ~STATION_LOGIC);
     }
   }
 
